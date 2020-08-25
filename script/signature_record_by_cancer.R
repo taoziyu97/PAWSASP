@@ -41,10 +41,10 @@ save(cosmic2, file = paste0("~/PAWSASP/data/cosmic2_signature.RData"))
 
 # TCGA signature by individual tumors
 
-TCGA_signature <- matrix(data = NA, nrow = 40, ncol = 7, 
+TCGA_signature <- matrix(data = NA, nrow = 40, ncol = 6, 
                          dimnames = list(1:40, 
                                          c("cancer type", "full name", "source", 
-                                           "sample","SBS list", "DBS list", "ID list")))
+                                           "SBS list", "DBS list", "ID list")))
 ## 整合TCGA的数据
 # TCGA cancer type
 TCGA_WES_SBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/TCGA_WES_sigProfiler_SBS_signatures_in_samples.csv")
@@ -64,11 +64,14 @@ SBS_list <- lapply(TCGA_SBS_list$data, function(data){
   unlist() %>%
   as.data.frame() %>% 
   `names<-`(.,"SBS list")
+TCGA_SBS <- cbind('cancer type' = TCGA_SBS_list$Cancer.Types, 
+                  'source' = "TCGA",
+                  SBS_list)
 
+# ID
 TCGA_ID_list <- TCGA_WES_ID %>%
   dplyr::group_by(Cancer.Types) %>%
   tidyr::nest()
-# ID
 ID_list <- lapply(TCGA_ID_list$data, function(data){
   sum <- apply(data[,3:19], 2, sum)
   paste_sig <- ifelse(sum ==0, NA,
@@ -79,32 +82,14 @@ ID_list <- lapply(TCGA_ID_list$data, function(data){
   unlist() %>%
   as.data.frame() %>% 
   `names<-`(.,"ID list")
+TCGA_ID <- cbind('cancer type' = TCGA_ID_list$Cancer.Types,
+                 ID_list)
+TCGA_sig <- dplyr::full_join(TCGA_SBS, TCGA_ID, by = 'cancer type')
 
-
-# TCGA_SBS_list <- purrr::map_df(TCGA_WES_SBS, function(TCGA_WES_SBS){
-#   TCGA_SBS_list <- TCGA_WES_SBS %>%
-#     dplyr::group_by(Cancer.Types) %>%
-#     tidyr::nest()
-#   # list2frame <- SBS_list %>% unlist() %>% as.data.frame()
-#   a <- TCGA_SBS_list %>%
-#     dplyr::mutate(
-#       SBS_list = (lapply(TCGA_SBS_list$data, function(data){
-#         sum <- apply(data[,3:67], 2, sum)
-#         paste_sig <- ifelse(sum ==0, NA, 
-#                gsub( "SBS", "",names(sum))) %>%
-#           na.omit() %>% 
-#           paste(., collapse = ",")
-#       })) %>% unlist() 
-#     ) 
-# }) %>%
-#   data.table::as.data.table()
+## 整合TCGA的数据
 
 
 
-
-
-purrr::map_df(TCGA_SBS_list, .f = function(a){
-  print(a$Cancer.Types)})
 
 ## test 针对AML
 test <- TCGA_SBS_list[[2]][[1]]

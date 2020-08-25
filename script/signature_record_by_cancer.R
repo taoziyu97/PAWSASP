@@ -39,12 +39,7 @@ save(cosmic2, file = paste0("~/PAWSASP/data/cosmic2_signature.RData"))
 ## 测试提取各个cancer的signature
 # test <- strsplit(cosmic2$`signature type`,split = ",")
 
-# TCGA signature by individual tumors
 
-TCGA_signature <- matrix(data = NA, nrow = 40, ncol = 6, 
-                         dimnames = list(1:40, 
-                                         c("cancer type", "full name", "source", 
-                                           "SBS list", "DBS list", "ID list")))
 ## 整合TCGA的数据
 # TCGA cancer type
 TCGA_WES_SBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/TCGA_WES_sigProfiler_SBS_signatures_in_samples.csv")
@@ -66,6 +61,7 @@ SBS_list <- lapply(TCGA_SBS_list$data, function(data){
   `names<-`(.,"SBS list")
 TCGA_SBS <- cbind('cancer type' = TCGA_SBS_list$Cancer.Types, 
                   'source' = "TCGA",
+                  'scale' = "WES",
                   SBS_list)
 
 # ID
@@ -84,12 +80,120 @@ ID_list <- lapply(TCGA_ID_list$data, function(data){
   `names<-`(.,"ID list")
 TCGA_ID <- cbind('cancer type' = TCGA_ID_list$Cancer.Types,
                  ID_list)
-TCGA_sig <- dplyr::full_join(TCGA_SBS, TCGA_ID, by = 'cancer type')
+TCGA_sig <- cbind(TCGA_SBS, 'DBS list' = NA)
+TCGA_sig <- dplyr::full_join(TCGA_sig, TCGA_ID, by = 'cancer type')
+save(TCGA_sig, file = "~/PAWSASP/data/TCGA_signature.RData")
 
-## 整合TCGA的数据
 
+## 整合PCAWG的数据
+PCAWG_SBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/PCAWG_sigProfiler_SBS_signatures_in_samples.csv")
+PCAWG_DBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/PCAWG_sigProfiler_DBS_signatures_in_samples.csv")
+PCAWG_ID <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/PCAWG_SigProfiler_ID_signatures_in_samples.csv")
+PCAWG_CT <- PCAWG_SBS$Cancer.Types[!duplicated(PCAWG_SBS$Cancer.Types)]
+# SBS
+PCAWG_SBS_list <- PCAWG_SBS %>%
+  dplyr::group_by(Cancer.Types) %>%
+  tidyr::nest()
+SBS_list2 <- lapply(PCAWG_SBS_list$data, function(data){
+  sum <- apply(data[,3:67], 2, sum)
+  paste_sig <- ifelse(sum ==0, NA,
+                      gsub( "SBS", "",names(sum))) %>%
+    na.omit() %>%
+    paste(., collapse = ",")
+}) %>% 
+  unlist() %>%
+  as.data.frame() %>% 
+  `names<-`(.,"SBS list")
+PCAWG_SBS <- cbind('cancer type' = PCAWG_SBS_list$Cancer.Types, 
+                  'source' = "PCAWG",
+                  'scale' = "WGS",
+                  SBS_list2)
+# DBS
+PCAWG_DBS_list <- PCAWG_DBS %>%
+  dplyr::group_by(Cancer.Types) %>%
+  tidyr::nest()
+DBS_list2 <- lapply(PCAWG_DBS_list$data, function(data){
+  sum <- apply(data[,3:13], 2, sum)
+  paste_sig <- ifelse(sum ==0, NA,
+                      gsub( "DBS", "",names(sum))) %>%
+    na.omit() %>%
+    paste(., collapse = ",")
+}) %>% 
+  unlist() %>%
+  as.data.frame() %>% 
+  `names<-`(.,"DBS list")
+PCAWG_DBS <- cbind('cancer type' = PCAWG_DBS_list$Cancer.Types, 
+                   DBS_list2)
+# ID
+PCAWG_ID_list <- PCAWG_ID %>%
+  dplyr::group_by(Cancer.Types) %>%
+  tidyr::nest()
+ID_list2 <- lapply(PCAWG_ID_list$data, function(data){
+  sum <- apply(data[,3:19], 2, sum)
+  paste_sig <- ifelse(sum ==0, NA,
+                      gsub( "ID", "",names(sum))) %>%
+    na.omit() %>%
+    paste(., collapse = ",")
+}) %>% 
+  unlist() %>%
+  as.data.frame() %>% 
+  `names<-`(.,"ID list")
+PCAWG_ID <- cbind('cancer type' = PCAWG_ID_list$Cancer.Types, 
+                   ID_list2)
+PCAWG_sig <- dplyr::full_join(PCAWG_SBS, PCAWG_DBS, by = 'cancer type')
+PCAWG_sig<- dplyr::full_join(PCAWG_sig, PCAWG_ID, by = 'cancer type')
+save(PCAWG_sig, file = "~/PAWSASP/data/PCAWG_signature.RData")
 
+## 整合non-PCAWG的数据
+nonPCAWG_WES_SBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/nonPCAWG_WES_sigProfiler_SBS_signatures_in_samples_2018_04_13.csv")
+nonPCAWG_WGS_SBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/nonPCAWG_WGS_sigProfiler_SBS_signatures_in_samples_2018_04_13.csv")
+nonPCAWG_WES_CT <- nonPCAWG_WES_SBS$Cancer.Types[!duplicated(nonPCAWG_WES_SBS$Cancer.Types)]
+nonPCAWG_WGS_CT <- nonPCAWG_WGS_SBS$Cancer.Types[!duplicated(nonPCAWG_WGS_SBS$Cancer.Types)]
+nonPCAWG_CT <- union(nonPCAWG_WES_CT, nonPCAWG_WGS_CT)
 
+# WES_SBS
+nonPCAWG_WES_SBS_list <- nonPCAWG_WES_SBS %>%
+  dplyr::group_by(Cancer.Types) %>%
+  tidyr::nest()
+SBS_list2 <- lapply(nonPCAWG_WES_SBS_list$data, function(data){
+  sum <- apply(data[,3:67], 2, sum)
+  paste_sig <- ifelse(sum ==0, NA,
+                      gsub( "SBS", "",names(sum))) %>%
+    na.omit() %>%
+    paste(., collapse = ",")
+}) %>% 
+  unlist() %>%
+  as.data.frame() %>% 
+  `names<-`(.,"SBS list")
+nonPCAWG_WES_SBS <- cbind('cancer type' = nonPCAWG_WES_SBS_list$Cancer.Types, 
+                   'source' = "nonPCAWG",
+                   'scale' = "WES",
+                   SBS_list2,
+                   'DBS list' = NA,
+                   'ID list' = NA)
+# WGS_SBS
+nonPCAWG_WGS_SBS_list <- nonPCAWG_WGS_SBS %>%
+  dplyr::group_by(Cancer.Types) %>%
+  tidyr::nest()
+SBS_list3 <- lapply(nonPCAWG_WGS_SBS_list$data, function(data){
+  sum <- apply(data[,3:67], 2, sum)
+  paste_sig <- ifelse(sum ==0, NA,
+                      gsub( "SBS", "",names(sum))) %>%
+    na.omit() %>%
+    paste(., collapse = ",")
+}) %>% 
+  unlist() %>%
+  as.data.frame() %>% 
+  `names<-`(.,"SBS list")
+nonPCAWG_WGS_SBS <- cbind('cancer type' = nonPCAWG_WGS_SBS_list$Cancer.Types, 
+                      'source' = "nonPCAWG",
+                      'scale' = "WGS",
+                      SBS_list3,
+                      'DBS list' = NA,
+                      'ID list' = NA)
+
+nonPCAWG_sig <- rbind(nonPCAWG_WES_SBS, nonPCAWG_WGS_SBS)
+save(nonPCAWG_sig, file = "~/PAWSASP/data/nonPCAWG_signature.RData")
 
 ## test 针对AML
 test <- TCGA_SBS_list[[2]][[1]]

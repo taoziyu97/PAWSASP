@@ -16,7 +16,7 @@ cancer_type <- c('Adrenocortical carcinoma','Acute lymphoblastic leukemia', 'Acu
 # BLCA：Bladder Urothelial Carcinoma
 # BRCA：Breast invasive carcinoma
 
-# UCC：uterine cervix cancer（宫颈癌）
+# UCC：uterine cervix cancer（宫颈癌�?
 
 # CLL：B-cell chronic lymphocytic leukemia
 
@@ -40,7 +40,7 @@ save(cosmic2, file = paste0("~/PAWSASP/data/cosmic2_signature.RData"))
 # test <- strsplit(cosmic2$`signature type`,split = ",")
 
 
-## 整合TCGA的数据
+## 整合TCGA的数�?
 # TCGA cancer type
 TCGA_WES_SBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/TCGA_WES_sigProfiler_SBS_signatures_in_samples.csv")
 TCGA_WES_ID <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/TCGA_WES_sigProfiler_ID_signatures_in_samples.csv")
@@ -55,10 +55,11 @@ SBS_list <- lapply(TCGA_SBS_list$data, function(data){
                  gsub( "SBS", "",names(sum))) %>%
             na.omit() %>%
             paste(., collapse = ",")
-        }) %>% 
-  unlist() %>%
-  as.data.frame() %>% 
-  `names<-`(.,"SBS list")
+        }) 
+# %>% 
+#   unlist() %>%
+#   as.data.frame() %>% 
+#   `names<-`(.,"SBS list")
 TCGA_SBS <- cbind('cancer type' = TCGA_SBS_list$Cancer.Types, 
                   'source' = "TCGA",
                   'scale' = "WES",
@@ -85,7 +86,7 @@ TCGA_sig <- dplyr::full_join(TCGA_sig, TCGA_ID, by = 'cancer type')
 save(TCGA_sig, file = "~/PAWSASP/data/TCGA_signature.RData")
 
 
-## 整合PCAWG的数据
+## 整合PCAWG的数�?
 PCAWG_SBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/PCAWG_sigProfiler_SBS_signatures_in_samples.csv")
 PCAWG_DBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/PCAWG_sigProfiler_DBS_signatures_in_samples.csv")
 PCAWG_ID <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/PCAWG_SigProfiler_ID_signatures_in_samples.csv")
@@ -144,7 +145,7 @@ PCAWG_sig <- dplyr::full_join(PCAWG_SBS, PCAWG_DBS, by = 'cancer type')
 PCAWG_sig<- dplyr::full_join(PCAWG_sig, PCAWG_ID, by = 'cancer type')
 save(PCAWG_sig, file = "~/PAWSASP/data/PCAWG_signature.RData")
 
-## 整合non-PCAWG的数据
+## 整合non-PCAWG的数�?
 nonPCAWG_WES_SBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/nonPCAWG_WES_sigProfiler_SBS_signatures_in_samples_2018_04_13.csv")
 nonPCAWG_WGS_SBS <- read.csv("/home/tzy/PAWSASP/data/ICGC-PCAWG-TCGA/SP_Signatures_in_Samples/nonPCAWG_WGS_sigProfiler_SBS_signatures_in_samples_2018_04_13.csv")
 nonPCAWG_WES_CT <- nonPCAWG_WES_SBS$Cancer.Types[!duplicated(nonPCAWG_WES_SBS$Cancer.Types)]

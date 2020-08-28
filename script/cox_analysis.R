@@ -51,7 +51,7 @@ single_cox <- function(data){
 }
 
 TCGA_sig_list$cox <- lapply(TCGA_sig_list$data, single_cox)
-
+save(TCGA_sig_list, file = "TCGA_sig_cox.rds")
 # 针对PCAWG
 PCAWG_clinical <- readxl::read_xlsx("C:/Users/lenovo/Documents/GitHub/PAWSASP/data/data/ICGC-PCAWG-TCGA/PCAWG-cli/pcawg_donor_clinical_August2016_v9.xlsx")
 clinical_TCGA_name <- PCAWG_clinical$submitted_donor_id[which(substr(PCAWG_clinical$submitted_donor_id, 1,4) == "TCGA")]
@@ -104,6 +104,7 @@ PCAWG_single_cox <- function(data){
 
 PCAWG_sig_list$cox <- lapply(PCAWG_sig_list$data, PCAWG_single_cox)
 
+save(PCAWG_sig_list, file = "PCAWG_sig_cox.rds")
 # 多因素cox分析
 # res.cox_test <- coxph(f, data = test_data, control = coxph.control(iter.max = 50))
 

@@ -127,3 +127,4 @@ save(nonPCAWG_sig, file = "nonPCAWG_sig.rds")
 # test_data <- TCGA_sig_list$data[6] %>% as.data.frame()
 # res.cox_test <- coxph(Surv(OS.time, OS) ~ SBS1 + SBS2 + SBS3 + SBS5 + SBS9 + SBS10a + 
 #                         SBS10b + SBS13 + SBS15 + SBS17a , data = test_data)
+

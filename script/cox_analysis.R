@@ -22,19 +22,18 @@ sig_name <- subset(sig_name, !(sig_name %in% c(artefacts)))
 
 ## 从做cox分析开始，把代码分成数据预处理和cox分析
 
-TCGA_PAN_cox <- matrix(data = NA, nrow = 64, ncol = 7, 
-                       dimnames = list(c(sig_name),
-                                       c("source","scale",
-                                         "HR","P value","CI upper", 
-                                         "CI lower", "var"))) %>%
-  as.data.frame()
-
 # 针对所有癌症类型
 TCGA_sig_list <- TCGA_cox_data %>%
   dplyr::group_by(Cancer.Types) %>%
   tidyr::nest()
 
 single_cox <- function(data){
+  TCGA_PAN_cox <- matrix(data = NA, nrow = 64, ncol = 7, 
+                         dimnames = list(c(sig_name),
+                                         c("source","scale",
+                                           "HR","P value","CI upper", 
+                                           "CI lower", "var"))) %>%
+    as.data.frame()
   for (i in sig_name){
     f <- as.formula(paste("Surv(OS.time, OS) ~ ", paste(i)))
     res.cox <- coxph(f, data = as.data.frame(data))
@@ -50,8 +49,40 @@ single_cox <- function(data){
   return(TCGA_PAN_cox)
 }
 
+# data = TCGA_sig_list$data[1] %>% as.data.frame()
+multi_cox <- function(data){
+  data <- data %>% as.data.frame()
+  sum_sig = apply(data[,5:86], 2, sum)
+  name_select <- names(sum_sig[which(sum_sig != 0)])
+  f <- as.formula(paste("Surv(OS.time, OS) ~ ", paste(name_select, collapse = "+")))
+  res.cox <- coxph(f, data = data, control = coxph.control(iter.max = 50))
+  summary_cox <- summary(res.cox)
+  
+  TCGA_PAN_cox <- matrix(data = NA, nrow = length(name_select), ncol = 7, 
+                         dimnames = list(c(name_select),
+                                         c("source","scale",
+                                           "HR","P value","CI upper", 
+                                           "CI lower", "var"))) %>%
+    as.data.frame()
+  
+  for (i in 1:length(name_select)){
+    TCGA_PAN_cox[i, ] <- c( "TCGA", "WES",
+                            summary_cox$conf.int[i, 1],
+                            summary_cox$coefficients[i, 5],
+                            summary_cox$conf.int[i, 3],
+                            summary_cox$conf.int[i, 4],
+                            name_select[i])
+  }
+  # TCGA_PAN_cox <- TCGA_PAN_cox %>% na.omit()
+  return(TCGA_PAN_cox)
+}
+
 TCGA_sig_list$cox <- lapply(TCGA_sig_list$data, single_cox)
+TCGA_sig_list$multicox <- lapply(TCGA_sig_list$data, multi_cox)
 save(TCGA_sig_list, file = "TCGA_sig_cox.rds")
+
+
+
 # 针对PCAWG
 PCAWG_clinical <- readxl::read_xlsx("C:/Users/lenovo/Documents/GitHub/PAWSASP/data/data/ICGC-PCAWG-TCGA/PCAWG-cli/pcawg_donor_clinical_August2016_v9.xlsx")
 clinical_TCGA_name <- PCAWG_clinical$submitted_donor_id[which(substr(PCAWG_clinical$submitted_donor_id, 1,4) == "TCGA")]
@@ -87,6 +118,12 @@ PCAWG_sig_list <- PCAWG_cox_data %>%
   tidyr::nest()
 
 PCAWG_single_cox <- function(data){
+  TCGA_PAN_cox <- matrix(data = NA, nrow = 64, ncol = 7, 
+                         dimnames = list(c(sig_name),
+                                         c("source","scale",
+                                           "HR","P value","CI upper", 
+                                           "CI lower", "var"))) %>%
+    as.data.frame()
   for (i in sig_name){
     f <- as.formula(paste("Surv(donor_survival_time, donor_vital_status) ~ ", paste(i)))
     res.cox <- coxph(f, data = as.data.frame(data))
@@ -102,7 +139,36 @@ PCAWG_single_cox <- function(data){
   return(TCGA_PAN_cox)
 }
 
+# data = PCAWG_sig_list$data[1]
+PCAWG_multi_cox <- function(data){
+  data <- data %>% as.data.frame()
+  sum_sig = apply(data[,5:86], 2, sum)
+  name_select <- names(sum_sig[which(sum_sig != 0)])
+  f <- as.formula(paste("Surv(donor_survival_time, donor_vital_status) ~ ", paste(name_select, collapse = "+")))
+  res.cox <- coxph(f, data = data, control = coxph.control(iter.max = 50))
+  summary_cox <- summary(res.cox)
+  
+  TCGA_PAN_cox <- matrix(data = NA, nrow = length(name_select), ncol = 7, 
+                         dimnames = list(c(name_select),
+                                         c("source","scale",
+                                           "HR","P value","CI upper", 
+                                           "CI lower", "var"))) %>%
+    as.data.frame()
+  
+  for (i in 1:length(name_select)){
+    TCGA_PAN_cox[i, ] <- c( "PCAWG", "WGS",
+                            summary_cox$conf.int[i, 1],
+                            summary_cox$coefficients[i, 5],
+                            summary_cox$conf.int[i, 3],
+                            summary_cox$conf.int[i, 4],
+                            name_select[i])
+  }
+  # TCGA_PAN_cox <- TCGA_PAN_cox %>% na.omit()
+  return(TCGA_PAN_cox)
+}
+
 PCAWG_sig_list$cox <- lapply(PCAWG_sig_list$data, PCAWG_single_cox)
+PCAWG_sig_list$multi_cox <- lapply(PCAWG_sig_list$data, PCAWG_multi_cox)
 
 save(PCAWG_sig_list, file = "PCAWG_sig_cox.rds")
 # 多因素cox分析
@@ -124,7 +190,7 @@ save(nonPCAWG_sig, file = "nonPCAWG_sig.rds")
 
 # 多因素cox分析有一些问题，暂时先不考虑
 # (f <- as.formula(paste("Surv(OS.time, OS) ~ ", paste(test$var, collapse = "+"))))
-# test_data <- TCGA_sig_list$data[6] %>% as.data.frame()
+test_data <- TCGA_sig_list$data[6] %>% as.data.frame()
 # res.cox_test <- coxph(Surv(OS.time, OS) ~ SBS1 + SBS2 + SBS3 + SBS5 + SBS9 + SBS10a + 
 #                         SBS10b + SBS13 + SBS15 + SBS17a , data = test_data)
 

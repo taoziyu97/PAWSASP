@@ -44,3 +44,4 @@ TCGA_km <- function(data){
 }
 
 # TCGA_sig_list$km <- lapply(TCGA_sig_list$data, TCGA_km)
+

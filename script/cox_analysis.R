@@ -16,6 +16,7 @@ TCGA_cox_data <- dplyr::inner_join(OS_time,TCGA_WES_sig, by = "bcr_patient_barco
 
 ## 单个signature
 sig_name <- names(TCGA_WES_sig)[4:85]
+save(sig_name, file = "all_sig_type.RData")
 ## 去除人工引入的signature
 load("C:/Users/lenovo/Documents/GitHub/PAWSASP/data/data/artefacts.Rdata")
 sig_name <- subset(sig_name, !(sig_name %in% c(artefacts)))
